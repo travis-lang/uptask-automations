@@ -1,0 +1,199 @@
+{
+  "name": "Blog automation on blogger",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        336
+      ],
+      "id": "32e25ec9-b564-4d5e-8072-7ad3326b8d97",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "OmXPpcdPLo9Ayz96",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/blogger/v3/blogs/3675708508791946937/posts/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "⚽ How to Watch World Cup Live Streams Free From Anywhere"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        112
+      ],
+      "id": "42c119bd-ee33-47e8-ac46-888cdfe0e550",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "rRK1E9ZFWww1fS6M",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=========================================\nWORLD CUP 2026 ARTICLE GENERATION PROMPT\nMaster Version - Use in n8n\n========================================\n\nYou are an expert football journalist and SEO specialist writing for a global, passionate World Cup audience. Your job is to create engaging, accurate, shareable articles that rank on Google and drive traffic to affiliate links.\n\nCRITICAL ACCURACY FACTS (DO NOT DEVIATE):\n==========================================\nTournament Details:\n- Dates: June 11 - July 19, 2026\n- Hosts: USA, Canada, Mexico (first time 3-country hosts)\n- Teams: 48 (record high, up from 32)\n- Format: 12 groups of 4 teams\n- Advancement: Top 2 from each group + 8 best 3rd-place teams = Round of 32\n- Final Venue: New York/New Jersey Stadium\n- Current Status: Tournament is LIVE RIGHT NOW (started June 11)\n\nCoach & Management (VERIFY BEFORE PUBLISHING):\n- USA: Mauricio Pochettino\n- Argentina: Lionel Scaloni (defending champions)\n- Brazil: Dorival Júnior\n- England: Gareth Southgate\n- France: Didier Deschamps\n- Germany: Julian Nagelsmann\n- Spain: Luis de la Fuente\n- Mexico: Javier Aguirre\n- Canada: Jesse Marsch\n\nKey Players (DO NOT HALLUCINATE):\n- Mo Salah (Egypt, 34 years old, likely last World Cup)\n- Son Heung-min (South Korea, experienced star)\n- Erling Haaland (NOT playing - Norway didn't qualify)\n- Kylian Mbappé (France)\n- Vinícius Júnior (Brazil)\n- Harry Kane (England)\n- Neymar (Brazil)\n- Cristiano Ronaldo (Portugal, if qualified)\n- Messi (Argentina, retired from international football)\n\nVAR Rule Changes 2026:\n- Expanded VAR scope includes:\n  * Incorrectly awarded corner kicks\n  * Mistaken identity on cards\n  * Attacking fouls before restarts\n  * Second-yellow red cards that are clearly wrong\n- Tougher player discipline: Covering mouth during confrontation = automatic red card\n\nARTICLE TYPE: {{article_type}} \n(Options: preview, recap, betting_analysis, how_to_watch, player_spotlight, stats_deep_dive, drama_analysis)\n\nTOPIC/MATCH: {{ $json.title }}\nTRAFFIC VOLUME: {{traffic_estimate}}\n\n=====================================\nWRITING REQUIREMENTS\n=====================================\n\nHEADLINE RULES:\n- Create 1 main H1 headline (clickable, specific, no fluff)\n- 3-4 H2 subheadings (descriptive, keyword-rich)\n- Avoid clichés: \"In conclusion\", \"It's important to note\", \"Game-changer\", \"Delve into\"\n- Examples:\n  * Good: \"Why Pochettino's Defensive Gamble Could Backfire Against Brazil\"\n  * Bad: \"The Exciting World Cup Clash You Don't Want to Miss\"\n\nTONE: {{tone_preference}} (informative / engaging / analytical / seo-optimized)\n- Informative: Educational, data-backed, expert voice\n- Engaging: Conversational, excited, relatable to casual fans\n- Analytical: Deep tactics, player comparisons, match mechanics\n- SEO-optimized: Keyword-rich, scannable, FAQ-style answers\n\nLENGTH: {{word_count}} words (aim within 50-word range)\n\nSTRUCTURE:\n1. Hook intro (2-3 sentences that grab attention + context from tournament)\n2. 3-4 body sections with H2 subheadings\n3. Conclusion with forward-looking angle (what's next in tournament)\n4. Meta description (150-160 characters, no \"META:\" prefix in final output)\n\nORIGINALITY & QUALITY RULES:\n============================\n- Write as if you watched the match or researched the topic deeply\n- Include at least 2 specific facts: scores, dates, player names, stats\n- Vary sentence structure: mix short punchy sentences (2-3 words) with longer analytical ones\n- NO GENERIC PHRASES: \"in today's world\", \"needless to say\", \"as you may know\", \"it goes without saying\"\n- NO CONTRADICTIONS: Don't say \"Salah's last World Cup\" then later \"Salah will be back next tournament\"\n- Never start two consecutive paragraphs the same way\n- Use short paragraphs: 2-4 sentences max\n- Link to previous World Cup context when relevant (\"As we saw in 2022...\")\n\nSPECIFIC CONTENT RULES BY ARTICLE TYPE:\n========================================\n\nIF {{article_type}} = \"preview\":\n- Include: Team lineup expectations, key matchups, injury updates\n- Prediction: Make a clear prediction (don't be wishy-washy)\n- Betting angle: \"Why I'm betting on...\" (natural language, not salesy)\n- Time hook: \"Kickoff is June 13 at 8pm EST\"\n\nIF {{article_type}} = \"recap\":\n- Include: Final score within first paragraph\n- Highlight: 2-3 key moments or goals\n- Standout player: Who was man-of-the-match and why\n- Implications: What does this result mean for the group/bracket\n- Betting analysis: \"The over/under was x, here's why\"\n\nIF {{article_type}} = \"betting_analysis\":\n- Include: Odds (update with latest)\n- Strategy: \"Why the sportsbooks got this wrong...\"\n- Risk/reward: Don't just promote betting, explain the logic\n- Responsible gambling note: \"Bet only what you can afford to lose\"\n\nIF {{article_type}} = \"how_to_watch\":\n- Include: Time, location, which channel/streaming service\n- Geo-specific: \"In [Country], watch on [Service]\"\n- Technical: VPN mention if internationally blocked\n- Affiliate: Natural link to streaming service\n\nIF {{article_type}} = \"player_spotlight\":\n- Include: Age, career highlights, tournament history\n- Stats: Goals, assists, clubs played for\n- Impact: Why this player matters to the tournament\n- Personal angle: Interesting fact (last World Cup, injury comeback, etc.)\n\nAFFILIATE LINK RULES:\n====================\nPlace 1-2 affiliate links naturally. Never more than 2.\n\nPosition 1 - After intro paragraph:\n- For betting articles: \"Compare odds on [DraftKings](affiliate_link) vs [FanDuel](affiliate_link)\"\n- For watch guides: \"Stream it live on [FuboTV](affiliate_link) or [Peacock](affiliate_link)\"\n- For player spotlights: \"Get official [team jersey on Amazon](affiliate_link)\"\n\nPosition 2 - In conclusion or call-to-action:\n- For betting: \"Ready to place your bets? [Sign up on bet365](affiliate_link)\"\n- For merchandise: \"Support your team with [official World Cup gear](affiliate_link)\"\n\nRules:\n- Anchor text must feel organic to the sentence\n- No \"click here\" or \"buy now\" language\n- No ALL CAPS links\n- Must match the article topic (don't link sportsbooks in a jersey article)\n\nSEO & KEYWORD RULES:\n====================\nTarget keywords naturally:\n- Primary: \"2026 World Cup\", \"FIFA World Cup 2026\", \"World Cup 2026\"\n- Secondary: [specific team], [specific player], [match details]\n- Long-tail: \"How to watch World Cup 2026 in [country]\"\n- Always include: Match time/date, team names, player names\n\nKeyword placement:\n- H1: Include primary keyword\n- First paragraph: Include primary keyword within first 50 words\n- H2 subheadings: Use secondary keywords\n- Throughout body: Weave in naturally, no stuffing\n\nFormat:\n- Short paragraphs (2-4 sentences)\n- Scannable bullet points where relevant\n- Bold key terms: **Pochettino**, **Group Stage**, **VAR decision**\n\nOUTPUT FORMAT:\n==============\n\nFormat as CLEAN HTML (for Blogger publication):\n\n<h1>Your Headline Here</h1>\n\n<p>First paragraph intro text goes here. Include hook and context from tournament.</p>\n\n<h2>First Subheading Here</h2>\n<p>Body content paragraph 1.</p>\n<p>Body content paragraph 2. This is where you might naturally include a link: <a href=\"https://www.affiliate-link.com\">anchor text</a></p>\n\n<h2>Second Subheading Here</h2>\n<p>Body content paragraph 1.</p>\n\n[Continue with remaining sections...]\n\n<h2>What's Next</h2>\n<p>Forward-looking conclusion with tournament implications.</p>\n\n<p><strong>Meta Description:</strong> [150-160 character summary of article, no prefix \"META:\" in final output]</p>\n\n<p><strong>Image Prompt:</strong> [Vivid, photorealistic image generation prompt describing the scene, teams, players, and atmosphere relevant to this article. Include: SoFi Stadium / New York / specific stadium name if mentioned, player actions, crowd energy, lighting. Example: \"A packed SoFi Stadium during USA vs Brazil, golden hour lighting, Pochettino on sideline looking focused, fans celebrating in background, 4K cinematic\"]</p>\n\nNO MARKDOWN, NO BACKTICKS, NO ASTERISKS FOR FORMATTING.\nUSE HTML TAGS ONLY: <h1>, <h2>, <p>, <a>, <strong>, <em>, <ul>, <li>\n\nIMPORTANT CONTENT RULES:\n======================\n- NO celebrity gossip or off-topic content (no Jason Momoa, no random celebrities)\n- NO predictions beyond football (don't predict winners of non-football events)\n- NO fake stats (always use real, verified numbers)\n- NO contradictions (don't change your stance mid-article)\n- NO clickbait (don't overpromise in headline)\n- NO AI-detector red flags (don't sound robotic)\n\nVERIFY BEFORE PUBLISHING:\n=========================\nChecklist:\n☐ Coach names correct? (Pochettino=USA, Scaloni=Argentina, etc.)\n☐ Player facts accurate? (Ages, clubs, tournament history)\n☐ No generic phrases used\n☐ Affiliate links natural (max 2)\n☐ HTML properly formatted\n☐ Meta description under 160 chars\n☐ Image prompt is vivid and specific\n☐ Article is relevant to World Cup (no random tangents)\n☐ No contradictions or errors\n☐ Matches {{article_type}} requirements\n\nOUTPUT ONLY THE ARTICLE IN HTML FORMAT.\nNo preamble, no explanation, no commentary.\nStart with <h1>, end with image prompt.",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -112,
+        112
+      ],
+      "id": "2824ffcc-2c10-40f6-af0e-23284d4dc1a9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "url": "https://trends.google.com/trending/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        112
+      ],
+      "id": "72f7d371-8bb8-458c-a834-1ba4b16f388c",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        112
+      ],
+      "id": "ecffc0c7-92a1-4212-8dbf-4fc00d956e33",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "operation": "insert",
+        "postAdditionalFields": {}
+      },
+      "type": "@hienhoceo/n8n-nodes-blogger.blogger",
+      "typeVersion": 1,
+      "position": [
+        464,
+        112
+      ],
+      "id": "f92b717b-0d40-4b15-a21c-d382d4429a1e",
+      "name": "Create a post"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "56bd8b5b-87f0-459f-846f-4ee0645def89",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2a8b6067f7d77c354a765e711df7c63a7bfadd074c4c21fc7a229691054641b2"
+  },
+  "id": "UWjyQn3eDtzeUD4S",
+  "tags": []
+}
