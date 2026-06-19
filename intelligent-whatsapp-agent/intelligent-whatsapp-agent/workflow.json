@@ -1,0 +1,366 @@
+{
+  "name": "WhatsApp Real Estate AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "b4a74eee-6921-4ecc-84d3-050c4116ec51",
+      "name": "Webhook GET (Meta Verify)",
+      "webhookId": "440473a5-99e5-4a48-baec-60c0bc865a48"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query;\nconst verifyToken = 'mytoken123';\n\nif (query['hub.mode'] === 'subscribe' && query['hub.verify_token'] === verifyToken) {\n  return [{ json: { challenge: query['hub.challenge'] } }];\n}\n\nreturn [{ json: { error: 'Invalid token' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        0
+      ],
+      "id": "b6b84c22-aa12-4873-8f4d-ceb5286891fd",
+      "name": "Verify Meta Token"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=={{ $json.challenge }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        352,
+        0
+      ],
+      "id": "1d07a18d-35d7-4221-b96e-4c1bb8c89c56",
+      "name": "Respond to Meta"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        336
+      ],
+      "id": "45a17c7b-1a41-4567-98ac-3cc03e1a4c6b",
+      "name": "Webhook POST (Incoming Messages)",
+      "webhookId": "f6124cb1-d51e-4de3-aeff-9e4cc479b4ec"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        128,
+        336
+      ],
+      "id": "b01d5078-ade3-4f7a-8db9-0ed926c83a72",
+      "name": "Respond OK to Meta"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nconst entry = body?.entry?.[0];\nconst change = entry?.changes?.[0];\nconst message = change?.value?.messages?.[0];\n\nif (!message || message.type !== 'text') {\n  return [{ json: { skip: true } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    userMessage: message.text.body,\n    fromNumber: message.from,\n    phoneNumberId: change.value.metadata.phone_number_id,\n    sessionId: message.from\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        336
+      ],
+      "id": "d433e949-56bb-446f-9b27-5c585cce188b",
+      "name": "Parse Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6051e58c-854e-46e9-940e-63307bfc240c",
+              "leftValue": "=={{ $json.userMessage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        336
+      ],
+      "id": "b7f64749-9238-4af8-aa28-1acc77b541f4",
+      "name": "Is Text Message?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=={{ $('Parse Message').first().json.userMessage }}",
+        "options": {
+          "systemMessage": "You are Maya, a warm and professional real estate consultant at Uptask Realty Kenya. You help clients find their perfect home or investment property in Nairobi and surrounding areas.\n\nYour personality:\n- Friendly and warm but professional — like a trusted friend who happens to know real estate\n- Kenyan in tone — occasionally use \"Sawa\", \"Karibu\", \"Asante\" naturally\n- Brief and clear — WhatsApp messages, not essays\n- Patient and helpful — never pushy\n\nYour process (follow this order naturally):\n1. Greet warmly and ask what they're looking for\n2. Understand their needs — buying or renting, budget, preferred area, bedrooms\n3. Recommend matching properties from your listings\n4. Answer questions about the properties\n5. Move towards booking a viewing — \"Would you like to come see it?\"\n6. When they agree to a viewing, collect: their name, preferred date and time\n7. Confirm the booking and let them know an agent will reach out\n\nAvailable listings:\n- 1BR apartment, Kilimani — Ksh 22,000/month | Modern, furnished, parking, 24hr security\n- 2BR apartment, Westlands — Ksh 45,000/month | Gym, swimming pool, backup generator\n- 3BR house, Langata — Ksh 75,000/month | Garden, 2 bathrooms, DSQ, quiet estate\n- 2BR apartment, Ruaka — Ksh 25,000/month | New building, great city views, fiber ready\n- 1/8 acre land, Rongai — Ksh 1.8M | Ready title deed, near tarmac\n- 3BR house, Syokimau — Ksh 8.5M to buy | Gated community, solar, modern finish\n\nRules:\n- Never mention you are an AI unless directly asked\n- If directly asked if you are an AI, say \"I'm Grace, your property consultant — here to help you find your ideal space 😊\"\n- Never make up properties not in the list above\n- If asked something you can't answer say \"Let me check that with our team and get back to you shortly\"\n- Keep every message under 50 words where possible\n- Use emojis sparingly — 1 per message maximum\n- Never send a wall of text — break information into short lines\n- Always end with a question to keep the conversation moving but make it natural and reasonable. Just know when to stop"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        864,
+        336
+      ],
+      "id": "8bf6de2c-0662-484c-bba9-98475361b74a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        800,
+        560
+      ],
+      "id": "3b0b5b7c-532a-45be-9c1f-cd2ace2a72f3",
+      "name": "Groq Model",
+      "credentials": {
+        "groqApi": {
+          "id": "nsEyuhJrCM7vXigE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=={{ $('Parse Message').first().json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        560
+      ],
+      "id": "62900856-b278-40ff-bf4c-650b5fa489c4",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to book a property viewing appointment. Call this when a customer wants to schedule a viewing. Extract the date and time from the conversation.",
+        "calendar": {
+          "__rl": true,
+          "value": "chrispinuswanjohi@gmail.com",
+          "mode": "id"
+        },
+        "additionalFields": {
+          "description": "=={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('description', 'Details about the viewing including property address and customer contact', 'string') }}",
+          "summary": "=={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('title', 'Property viewing appointment title including customer name and property', 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1056,
+        560
+      ],
+      "id": "f8ced31d-b278-49ec-9668-717ac888dd8c",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "IRnG7syWfskjvQ9M",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/1198678176657954/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"={{ $('Parse Message').first().json.fromNumber }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.output }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1264,
+        336
+      ],
+      "id": "0193111e-f9db-4003-a622-d301ead11c42",
+      "name": "Send whatsapp reply",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zKZX5rzCanJdJqZE",
+          "name": "Groq API Key"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook GET (Meta Verify)": {
+      "main": [
+        [
+          {
+            "node": "Verify Meta Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Meta Token": {
+      "main": [
+        [
+          {
+            "node": "Respond to Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook POST (Incoming Messages)": {
+      "main": [
+        [
+          {
+            "node": "Respond OK to Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond OK to Meta": {
+      "main": [
+        [
+          {
+            "node": "Parse Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Message": {
+      "main": [
+        [
+          {
+            "node": "Is Text Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text Message?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Groq Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send whatsapp reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e3464734-269e-4fa0-888e-4580f8a85b7f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2a8b6067f7d77c354a765e711df7c63a7bfadd074c4c21fc7a229691054641b2"
+  },
+  "id": "krQXvAtLGzHhmd7Y",
+  "tags": []
+}
