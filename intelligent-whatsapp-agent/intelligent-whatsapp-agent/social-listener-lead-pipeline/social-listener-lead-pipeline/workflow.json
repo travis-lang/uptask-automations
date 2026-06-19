@@ -1,0 +1,485 @@
+{
+  "name": "Reddit Lead Gen Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const subreddits = [\n  // Business & Entrepreneurship\n  'entrepreneur',\n  'smallbusiness', \n  'startups',\n  'business',\n  'Entrepreneur',\n  \n  // E-commerce\n  'ecommerce',\n  'shopify',\n  'amazonsellers',\n  'dropship',\n  'etsy',\n  \n  // Marketing & Sales\n  'digital_marketing',\n  'marketing',\n  'SEO',\n  'sales',\n  'copywriting',\n  \n  // Agencies & Freelancers\n  'agency',\n  'freelance',\n  'hiring',\n  \n  // Ops & Productivity\n  'productivity',\n  'nocode',\n  'zapier',\n  'SaaS',\n  \n  // Stress & Overwhelm (goldmine)\n  'Entrepreneur',\n  'antiwork',\n  'overemployed',\n  'workaholics'\n];\n\nreturn subreddits.map(sub => ({ json: { subreddit: sub } }));"
+      },
+      "id": "d0cf4840-8b83-41c4-8e92-ec3a76dfea2e",
+      "name": "Define Subreddits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://arctic-shift.photon-reddit.com/api/posts/search?subreddit={{ $json.subreddit }}&limit=50",
+        "options": {}
+      },
+      "id": "cb26823b-ece7-4d88-bfa9-5c75e1fce041",
+      "name": "Fetch Reddit Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -688,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const painKeywords = [\n  // Time & Manual work\n  'manually', 'hours', 'repetitive', 'copy paste', 'copy-paste',\n  'too much time', 'wasting time', 'doing everything myself',\n  'no time', 'burned out', 'overwhelmed', 'drowning',\n  'wearing all the hats', 'do it all myself', 'by myself',\n  'cant keep up', \"can't keep up\", 'falling behind',\n\n  // Scale & Growth problems\n  \"can't scale\", 'cant scale', 'need to scale', 'growing fast',\n  'too busy', 'too much work', 'more work than i can handle',\n  'turning down clients', 'losing clients', 'missing opportunities',\n  'bottleneck', 'bandwidth', 'capacity',\n\n  // Hiring & Cost problems  \n  'hire someone', 'need help', 'VA is expensive', 'virtual assistant',\n  'outsource', 'contractor', 'too expensive to hire',\n  'cant afford', \"can't afford\", 'budget is tight',\n  'fired my VA', 'let go of', 'laid off',\n\n  // Leads & Sales\n  'losing leads', 'follow up', 'leads falling through',\n  'no system', 'missed leads', 'forget to follow up',\n  'pipeline', 'CRM mess', 'spreadsheet', 'leads going cold',\n  'not closing', 'conversion', 'no sales process',\n  'chasing invoices', 'unpaid invoices', 'late payments',\n\n  // E-commerce\n  'inventory', 'orders', 'fulfillment', 'abandoned cart',\n  'customer emails', 'refunds', 'shipping', 'returns',\n  'product listings', 'updating prices', 'stock levels',\n  'supplier', 'dropshipping headache', 'amazon fees',\n  'etsy algorithm', 'shopify', 'woocommerce',\n\n  // Marketing & Content\n  'posting every day', 'content creation', 'social media',\n  'scheduling posts', 'no engagement', 'growing my audience',\n  'email list', 'newsletter', 'no leads from marketing',\n  'ads not working', 'facebook ads', 'google ads',\n  'SEO taking forever', 'no organic traffic',\n\n  // Operations & Tools\n  'automate', 'automation', 'integrate', 'sync', 'connect',\n  'zapier is expensive', 'make.com', 'workflow', 'connect my tools',\n  'data entry', 'updating spreadsheets', 'manual reports',\n  'copy data', 'switching between apps', 'too many tools',\n  'nothing talks to each other', 'disconnected', 'silos',\n  'reporting takes forever', 'building reports manually',\n\n  // Agency & Freelance specific\n  'onboarding clients', 'client onboarding', 'scope creep',\n  'project management', 'missed deadlines', 'client communication',\n  'proposals taking too long', 'writing proposals',\n  'invoicing', 'contracts', 'tracking hours',\n\n  // SaaS & Tech\n  'churn', 'customer success', 'user onboarding',\n  'support tickets', 'too many emails', 'customer complaints',\n  'bug reports', 'feature requests piling up',\n\n  // Stress & Desperation signals (highest intent)\n  'stressed', 'struggling', 'nightmare', 'disaster',\n  'killing me', 'driving me crazy', 'pulling my hair',\n  'please help', 'any advice', 'need advice', 'desperate',\n  'at my wit', 'breaking point', 'giving up',\n  'is there a way', 'how do i automate', 'there has to be',\n  'anyone else deal with', 'how do you handle',\n  'what do you use for', 'recommend a tool',\n  'looking for a solution', 'looking for software',\n  'need a better way', 'better way to', 'easier way to'\n];\n\nconst posts = $input.all().flatMap(item => item.json.data || []);\n\nconst seen = new Set();\nconst leads = posts.filter(post => {\n  // Skip deleted/removed\n  if (!post.author || post.author === '[deleted]') return false;\n  if (!post.selftext || post.selftext === '[removed]' || post.selftext === '[deleted]') return false;\n  if (post.selftext.trim().length < 30) return false;\n\n  // Deduplicate by post ID\n  if (seen.has(post.id)) return false;\n  seen.add(post.id);\n\n  const text = ((post.title || '') + ' ' + (post.selftext || '')).toLowerCase();\n  return painKeywords.some(k => text.includes(k));\n});\n\nif (leads.length === 0) {\n  return [{ json: { empty: true } }];\n}\n\n// Score each lead by how many keywords match (more = hotter)\nconst scored = leads.map(post => {\n  const text = ((post.title || '') + ' ' + (post.selftext || '')).toLowerCase();\n  const matchCount = painKeywords.filter(k => text.includes(k)).length;\n  return { post, matchCount };\n});\n\n// Sort hottest leads first\nscored.sort((a, b) => b.matchCount - a.matchCount);\n\nreturn scored.map(({ post, matchCount }) => ({\n  json: {\n    title: post.title,\n    author: post.author,\n    problem: (post.selftext || '').substring(0, 800),\n    score: post.score,\n    comments: post.num_comments,\n    subreddit: post.subreddit,\n    keyword_matches: matchCount,\n    created: new Date(post.created_utc * 1000).toISOString(),\n    reddit_url: `https://reddit.com${post.permalink}`,\n    profile_url: `https://reddit.com/u/${post.author}`\n  }\n}));"
+      },
+      "id": "ec84661e-ac66-4eeb-b834-0aa8d822e5f5",
+      "name": "Filter Pain Points",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 20,
+        "options": {}
+      },
+      "id": "56d003be-fbc1-4a69-942f-f4d837a29ec9",
+      "name": "Split Into Leads",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const lead = $input.item.json;\n\nif (!lead || lead.empty) return { json: { empty: true } };\n\nconst score = parseInt(lead.intent_score) || 0;\n\nreturn {\n  json: {\n    ...lead,\n    intent_score: score,\n    status: score >= 7 ? 'Hot Lead' : score >= 5 ? 'Warm Lead' : 'Low Intent'\n  }\n};"
+      },
+      "id": "6949524f-008c-4ca5-ae68-4754a938be7a",
+      "name": "Filter High Intent (6+)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1fL59br_WPbInO_KbxB9WRQNo_UUA1Ga7Xjkd732hCGA/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DedupeLog",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Reddit URL"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Subreddit",
+              "displayName": "Subreddit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Author",
+              "displayName": "Author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Problem",
+              "displayName": "Problem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Intent Score",
+              "displayName": "Intent Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DM Draft",
+              "displayName": "DM Draft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reddit URL",
+              "displayName": "Reddit URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Profile URL",
+              "displayName": "Profile URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Keyword Matches",
+              "displayName": "Keyword Matches",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f31c3105-9fa2-4ecd-9bf4-23dbd772f337",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8TpGv22UyoMDrBgh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const lead = $input.item.json;\n\nif (lead.empty) return [];\n\nlet response;\ntry {\n  response = await this.helpers.request({\n    method: 'POST',\n    url: 'https://api.groq.com/openai/v1/chat/completions',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_KEY',\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      model: 'llama-3.3-70b-versatile',\n      temperature: 0.7,\n      messages: [\n        {\n          role: 'user',\n          content: `You are an expert at converting Reddit posts into freelance automation clients. You build workflows using n8n, AI, and APIs that save businesses time and money.\n\nSomeone posted on r/${lead.subreddit}:\nTitle: ${lead.title}\nPost: ${lead.problem || 'no body - use title only'}\nKeyword matches: ${lead.keyword_matches} pain indicators found\n\nYour job:\n1. Rate BUYING INTENT 1-10. Consider:\n   - 9-10: Actively asking for solutions, mentioning budget, desperate\n   - 7-8: Clear pain point, open to help\n   - 5-6: Has the problem but not actively seeking solutions\n   - Below 5: Just venting, not a buyer\n\n2. Write a Reddit DM that:\n   - Opens by referencing their EXACT situation not generic\n   - Mentions ONE specific thing you could automate for them\n   - Is conversational like a helpful person not a salesperson\n   - Ends with a soft offer free 15-min call no pitch\n   - MAX 4 sentences\n   - NEVER start with Hey or Hi be different\n\nReply ONLY as valid JSON, nothing else:\n{\"intent_score\": 8, \"reason\": \"specific one sentence reason\", \"dm\": \"your dm here\", \"solution\": \"one line on what you would automate for them\"}`\n        }\n      ]\n    })\n  });\n} catch(e) {\n  return {\n    json: {\n      ...lead,\n      intent_score: 0,\n      reason: 'API error: ' + e.message,\n      dm_draft: '',\n      solution: '',\n      status: 'Error'\n    }\n  };\n}\n\nconst data = JSON.parse(response);\nconst content = data.choices[0].message.content;\n\nconst cleaned = content\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .replace(/[\\u0000-\\u001F\\u007F-\\u009F]/g, '')\n  .trim();\n\nconst jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n\nlet ai = { intent_score: 0, reason: 'parse error', dm: '', solution: '' };\ntry {\n  if (jsonMatch) {\n    ai = JSON.parse(jsonMatch[0]);\n  } else {\n    ai.reason = 'No JSON found: ' + cleaned.substring(0, 100);\n  }\n} catch(e) {\n  ai.reason = 'Parse failed: ' + cleaned.substring(0, 100);\n}\n\nreturn {\n  json: {\n    ...lead,\n    intent_score: ai.intent_score,\n    reason: ai.reason,\n    dm_draft: ai.dm,\n    solution: ai.solution,\n    status: 'New Lead'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        240
+      ],
+      "id": "e5764269-fbe6-45a4-a2e2-0b022adb477d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7ea96502-7f20-41d8-bebd-4335a4f6758f",
+              "name": "Date",
+              "value": "={{ $json.created }}",
+              "type": "string"
+            },
+            {
+              "id": "e9304851-da95-4a5f-967c-71b88e2cd89f",
+              "name": "Subreddit",
+              "value": "={{ $json.subreddit }}",
+              "type": "string"
+            },
+            {
+              "id": "018a3658-f7f6-4d8b-8bc6-18bcb3df9bc4",
+              "name": "Author",
+              "value": "={{ $json.author }}",
+              "type": "string"
+            },
+            {
+              "id": "5d9b446b-10ed-49b3-895a-2db3b21a0ca0",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "09228ab5-b85d-4d1d-b5da-72bd069d0866",
+              "name": "Problem",
+              "value": "={{ $json.problem?.replace(/\\n/g, ' ').replace(/^=/, \"'=\") }}",
+              "type": "string"
+            },
+            {
+              "id": "ba4134e0-27dd-494a-aff1-7d2a53af0e0f",
+              "name": "Intent Score",
+              "value": "={{ $json.intent_score }}",
+              "type": "number"
+            },
+            {
+              "id": "c9e3ac31-236a-4146-9d32-5d1f97c56825",
+              "name": "Reason",
+              "value": "={{ $json.reason }}",
+              "type": "string"
+            },
+            {
+              "id": "e56e06da-f2dd-4d24-9b79-f901054412e4",
+              "name": "DM Draft",
+              "value": "={{ $json.dm_draft }}",
+              "type": "string"
+            },
+            {
+              "id": "dbda6565-ff9b-47b6-b0e6-de32ff0bc112",
+              "name": "Reddit URL",
+              "value": "={{ $json.reddit_url }}",
+              "type": "string"
+            },
+            {
+              "id": "79f057f5-8793-49a6-bf31-c19b9eccf105",
+              "name": "Profile URL",
+              "value": "={{ $json.profile_url }}",
+              "type": "string"
+            },
+            {
+              "id": "548d3afd-3ab7-411b-900b-adc326a53fc7",
+              "name": "Status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "6757c431-e809-407a-aa98-af09e9bd4e0f",
+              "name": "Keyword Matches",
+              "value": "={{ $json.keyword_matches }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        240
+      ],
+      "id": "d7e18f98-9b33-4ad0-a54a-25af9d138b19",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        240
+      ],
+      "id": "1ccbac32-0313-4d1c-a4cf-89241a654ea2",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        240
+      ],
+      "id": "fdd6e07e-f65b-4c5d-8265-39b250503b9a",
+      "name": "Wait",
+      "webhookId": "b4c5687d-0b40-48f2-80da-73975072e889"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Define Subreddits": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reddit Posts": {
+      "main": [
+        [
+          {
+            "node": "Filter Pain Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Pain Points": {
+      "main": [
+        [
+          {
+            "node": "Split Into Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Leads": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Intent (6+)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Filter High Intent (6+)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Define Subreddits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "942c7cea-6fd0-4fa3-8352-5123d5606213",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2a8b6067f7d77c354a765e711df7c63a7bfadd074c4c21fc7a229691054641b2"
+  },
+  "id": "k91pL3611julg6Jw",
+  "tags": []
+}
